@@ -1,0 +1,35 @@
+# Only needed for local (kind) testing - `kubectl apply -n argocd -f` this
+# once ArgoCD is installed and this repo is pushed. For real EKS,
+# `templates/infra`'s Terraform creates the equivalent Application itself.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-platform-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/atkaridarshan04/test-gitops.git
+    path: "."
+    targetRevision: main
+    directory:
+      recurse: true
+      exclude: "{root-application.yaml,**/values.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

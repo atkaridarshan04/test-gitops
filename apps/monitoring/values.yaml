@@ -1,0 +1,17 @@
+grafana:
+  admin:
+    existingSecret: grafana-admin-credentials
+  persistence:
+    enabled: true
+    storageClassName: standard
+    size: 5Gi
+prometheus:
+  prometheusSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
