@@ -38,11 +38,11 @@ reverted).
 
 ```
 apps/
-├── cluster-addons/
-│   └── storage-class.yaml   # empty - create_storage_class is off, reusing an existing "standard" class
-└── monitoring/
-    ├── application.yaml     # kube-prometheus-stack (Prometheus, Grafana, Alertmanager) - sync-wave "0"
-    └── values.yaml          # its Helm values, referenced by application.yaml via "$values"
+├── monitoring/
+│   ├── application.yaml     # kube-prometheus-stack (Prometheus, Grafana, Alertmanager) - sync-wave "0"
+│   └── values.yaml          # its Helm values, referenced by application.yaml via "$values"
+└── app/
+    └── application.yaml     # points at https://github.com/your-org/my-app.git - sync-wave "1", after the platform's ready
 ```
 
 ## Reaching Grafana
@@ -57,6 +57,22 @@ Open `http://localhost:3000`.
 An ArgoCD `ServiceMonitor` (so Prometheus scrapes ArgoCD's own metrics) is a
 deliberate follow-up, added once the monitoring stack above is confirmed
 working - not bundled into the same untested change.
+
+## Onboarded app
+
+`apps/app/application.yaml` points ArgoCD at
+`https://github.com/your-org/my-app.git` (path `.`, revision
+`main`) - a separate repo this tool doesn't generate.
+Nothing extra to run for the app itself: it's already in this repo's
+`apps/` tree, so the root Application picks it up the same automatic way
+it picks up everything else here, once you've pushed and applied
+`root-application.yaml` (Setup above). That other repo's own
+docs cover deploying into it and reaching it once synced - check sync
+status here:
+
+```bash
+kubectl get application app -n argocd
+```
 
 ## How this works
 
