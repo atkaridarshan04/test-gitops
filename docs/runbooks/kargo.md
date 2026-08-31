@@ -20,14 +20,14 @@ means nothing new has matched `kargo_image_constraint` yet.
 
 ## Approve a prod promotion
 
-Staging's `git-open-pr` step opens a PR against `https://github.com/your-org/my-app.git` -
+Staging's `git-open-pr` step opens a PR against `https://github.com/atkaridarshan04/test-app.git` -
 merging it is the approval. Find it:
 
 ```bash
 kubectl get stage app-prod -n app -o jsonpath='{.status.currentPromotion}'
 ```
 
-or check `https://github.com/your-org/my-app.git`'s open PRs directly. `git-wait-for-pr` picks
+or check `https://github.com/atkaridarshan04/test-app.git`'s open PRs directly. `git-wait-for-pr` picks
 up the merge automatically - no Kargo-side action needed after merging.
 
 ## A promotion is stuck
@@ -76,7 +76,7 @@ metadata:
   labels:
     kargo.akuity.io/cred-type: git
 stringData:
-  repoURL: https://github.com/your-org/my-app.git
+  repoURL: https://github.com/atkaridarshan04/test-app.git
   username: git
   password: <new PAT>
 EOF

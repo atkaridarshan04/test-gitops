@@ -73,7 +73,7 @@ each one deploys (Helm values, Kargo's own CRDs).
      labels:
        kargo.akuity.io/cred-type: git
    stringData:
-     repoURL: https://github.com/your-org/my-app.git
+     repoURL: https://github.com/atkaridarshan04/test-app.git
      username: git
      password: <a GitHub PAT with repo write access>
    EOF
@@ -153,13 +153,13 @@ day-2 operations (stuck promotions, approvals, secret rotation) are in
 `apps/kargo/` includes a Kargo `Project`/`Warehouse`/three `Stage`s/one
 shared `PromotionTask` for `app`, watching
 `hashicorp/http-echo` for new image tags and promoting
-`./kustomize/overlays/{dev,staging,prod}` in `https://github.com/your-org/my-app.git`
+`./kustomize/overlays/{dev,staging,prod}` in `https://github.com/atkaridarshan04/test-app.git`
 between them (dev/staging auto, prod needs a human to merge the PR Kargo
 opens - see "Not yet in this repo"). `argocd/applications/` includes the
 `app-dev`/`-staging`/`-prod` `Application`s, pre-annotated so
 Kargo is authorized to update them (see Layout above) - you still need to
 build the `overlays/{dev,staging,prod}` directories themselves in
-`https://github.com/your-org/my-app.git`; `examples/kustomize/` is a worked example of that
+`https://github.com/atkaridarshan04/test-app.git`; `examples/kustomize/` is a worked example of that
 layout. Once you've pushed it, check status:
 
 ```bash

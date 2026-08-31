@@ -14,7 +14,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/my-app.git
+    repoURL: https://github.com/atkaridarshan04/test-app.git
     path: ./kustomize/overlays/dev
     targetRevision: main
   destination:
