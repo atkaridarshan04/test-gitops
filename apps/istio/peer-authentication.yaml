@@ -1,0 +1,16 @@
+# Mesh-wide default is already PERMISSIVE with no PeerAuthentication at all
+# (Istio's own default) - this makes that explicit and documented, and is
+# the scope for this first pass; STRICT is a deliberate follow-up once
+# every addon in this repo is confirmed sidecar-injected (see root README's
+# "Not yet in this repo").
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  mtls:
+    mode: PERMISSIVE

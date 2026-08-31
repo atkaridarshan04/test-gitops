@@ -1,0 +1,16 @@
+auth:
+  # no login - scoped to kubectl port-forward only in this first pass, no
+  # Ingress/OIDC (see root README's "Not yet in this repo")
+  strategy: anonymous
+
+external_services:
+  istio:
+    root_namespace: istio-system
+  prometheus:
+    # this repo's own kube-prometheus-stack - Kiali's own default
+    # (same-namespace autodetection) doesn't apply since Prometheus lives
+    # in the monitoring namespace, not istio-system
+    url: http://monitoring-kube-prometheus-prometheus.monitoring:9090
+  grafana:
+    enabled: true
+    internal_url: http://monitoring-grafana.monitoring
