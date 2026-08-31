@@ -1,0 +1,32 @@
+# prod only pulls Freight already verified in staging. autoPromotionEnabled
+# is false for this Stage (project-config.yaml), so a human still has to
+# merge the PR promote-overlay opens before this actually deploys.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod
+  namespace: app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: app
+      sources:
+        stages:
+          - staging
+
+  promotionTemplate:
+    spec:
+      vars:
+        - name: overlayPath
+          value: ./kustomize/overlays/prod
+        - name: appName
+          value: app-prod
+        - name: branch
+          value: main
+      steps:
+        - task:
+            name: promote-overlay
+          as: promote

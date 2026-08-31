@@ -1,0 +1,14 @@
+# Watches kargo_image_repo_url for new tags matching kargo_image_constraint
+# and produces Freight when something new shows up.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: app
+  namespace: app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  subscriptions:
+    - image:
+        repoURL: 
+        constraint: ">=1.0.0"

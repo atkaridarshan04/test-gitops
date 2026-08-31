@@ -1,0 +1,8 @@
+# sync-wave "1" - after the kargo Application (wave "0") has actually
+# installed the controller and its CRDs, not just been applied
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"

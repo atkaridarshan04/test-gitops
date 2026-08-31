@@ -1,0 +1,68 @@
+# Shared by all three Stages (see steps: [{task: {name: promote-overlay}}]
+# in each stage-*.yaml) - only the vars differ per Stage.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: promote-overlay
+  namespace: app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  vars:
+    - name: overlayPath
+    - name: appName
+    - name: branch
+    - name: repoURL
+      value: https://github.com/atkaridarshan04/test-app.git
+
+  steps:
+    - uses: git-clone
+      as: clone
+      config:
+        repoURL: ${{ vars.repoURL }}
+        checkout:
+          - branch: ${{ vars.branch }}
+            path: ./repo
+
+    - uses: kustomize-set-image
+      as: set-image
+      config:
+        path: ./repo/${{ vars.overlayPath }}
+        images:
+          - image: hashicorp/http-echo
+            tag: ${{ imageFrom('hashicorp/http-echo').Tag }}
+
+    - uses: git-commit
+      as: commit
+      config:
+        path: ./repo
+        message: "promote ${{ vars.appName }} to freight ${{ ctx.targetFreight.name }}"
+
+    - uses: git-push
+      as: push
+      config:
+        path: ./repo
+        generateTargetBranch: true
+
+    - uses: git-open-pr
+      as: open-pr
+      config:
+        repoURL: ${{ vars.repoURL }}
+        provider: github
+        sourceBranch: ${{ task.outputs.push.branch }}
+        targetBranch: ${{ vars.branch }}
+        title: "chore(${{ ctx.stage }}): bump to ${{ imageFrom('hashicorp/http-echo').Tag }}"
+
+    - uses: git-wait-for-pr
+      as: wait-for-pr
+      if: ${{ status('open-pr') != 'Skipped' }}
+      config:
+        repoURL: ${{ vars.repoURL }}
+        provider: github
+        prNumber: ${{ task.outputs['open-pr'].pr.id }}
+
+    - uses: argocd-update
+      as: sync
+      config:
+        apps:
+          - name: ${{ vars.appName }}

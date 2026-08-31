@@ -1,0 +1,10 @@
+api:
+  adminAccount:
+    enabled: true
+  secret:
+    name: kargo-admin
+  tls:
+    # chart default (true) requires cert-manager CRDs for its self-signed
+    # cert, which this repo doesn't install - TLS terminates upstream
+    # instead (ALB's wildcard cert on aws, plain port-forward on local)
+    enabled: false

@@ -1,0 +1,30 @@
+# staging only pulls Freight already verified in dev.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: staging
+  namespace: app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: app
+      sources:
+        stages:
+          - dev
+
+  promotionTemplate:
+    spec:
+      vars:
+        - name: overlayPath
+          value: ./kustomize/overlays/staging
+        - name: appName
+          value: app-staging
+        - name: branch
+          value: main
+      steps:
+        - task:
+            name: promote-overlay
+          as: promote

@@ -11,11 +11,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/my-platform-gitops.git
+    repoURL: https://github.com/atkaridarshan04/test-gitops.git
     path: "."
     targetRevision: main
     directory:
       recurse: true
+      # plain Helm values files referenced via ArgoCD's multi-source "$values", and this bootstrap manifest itself - not for this Application to manage
       exclude: "{root-application.yaml,**/values.yaml}"
   destination:
     server: https://kubernetes.default.svc

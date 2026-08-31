@@ -16,7 +16,7 @@ spec:
       helm:
         valueFiles:
           - $values/apps/monitoring/values.yaml
-    - repoURL: https://github.com/your-org/my-platform-gitops.git
+    - repoURL: https://github.com/atkaridarshan04/test-gitops.git
       targetRevision: main
       ref: values
   destination:

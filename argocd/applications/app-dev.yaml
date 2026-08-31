@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-dev
+  namespace: argocd
+  annotations:
+    # after cluster-addons (-1) and monitoring (0) - the app shouldn't sync before the platform's ready
+    argocd.argoproj.io/sync-wave: "1"
+    # Kargo never creates this Application, only updates it once it exists
+    # (Kargo's own docs) - must match the Project/Stage name Kargo generates
+    kargo.akuity.io/authorized-stage: app:dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/my-app.git
+    path: ./kustomize/overlays/dev
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
