@@ -11,5 +11,5 @@ metadata:
 spec:
   subscriptions:
     - image:
-        repoURL: 
+        repoURL: hashicorp/http-echo
         constraint: ">=1.0.0"
