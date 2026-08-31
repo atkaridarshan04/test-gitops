@@ -10,6 +10,9 @@ metadata:
   namespace: istio-system
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # security.istio.io/v1 isn't registered until istio-base (wave "-1")
+    # actually installs - see CLAUDE.md's ArgoCD conventions for why this
+    # is needed regardless of sync-wave
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   mtls:
