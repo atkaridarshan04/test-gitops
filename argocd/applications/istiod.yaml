@@ -15,9 +15,6 @@ spec:
     chart: istiod
     targetRevision: "1.29.7"
     helm:
-      # kind has no metrics-server, so the HPA this chart creates by default
-      # can never scale and sits permanently Degraded - aws gets a real
-      # metrics-server via the EKS module and keeps the chart default.
       values: |
         pilot:
           autoscaleEnabled: false
@@ -30,6 +27,7 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:
@@ -38,9 +36,10 @@ spec:
         maxDuration: 3m
   revisionHistoryLimit: 10
   ignoreDifferences:
-    # istiod's own webhook controller patches in the real caBundle and
-    # flips failurePolicy to Fail once it's ready - the chart ships neither
-    # set, so this is permanent, expected drift, not a config bug.
-    - kind: ValidatingWebhookConfiguration
+    # istiod's own controller patches caBundle/failurePolicy at runtime -
+    # permanent expected drift, not a bug. group is required, or this rule
+    # silently matches nothing (defaults to the core API group).
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
       jsonPointers:
         - /webhooks

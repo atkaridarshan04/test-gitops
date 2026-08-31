@@ -26,6 +26,7 @@ spec:
       # destinationrules.networking.istio.io alone is ~325KB raw - exceeds
       # the 262144-byte last-applied-configuration limit under client-side apply
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:
@@ -34,9 +35,10 @@ spec:
         maxDuration: 3m
   revisionHistoryLimit: 10
   ignoreDifferences:
-    # istiod's own webhook controller patches in the real caBundle and
-    # flips failurePolicy to Fail once it's ready - the chart ships neither
-    # set, so this is permanent, expected drift, not a config bug.
-    - kind: ValidatingWebhookConfiguration
+    # istiod's own controller patches caBundle/failurePolicy at runtime -
+    # permanent expected drift, not a bug. group is required, or this rule
+    # silently matches nothing (defaults to the core API group).
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
       jsonPointers:
         - /webhooks
