@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
+  labels:
+    istio-injection: enabled
+  annotations:
+    # cluster-addon tier - must exist, labeled, before the app's own
+    # Application (wave "1") creates pods into it
+    argocd.argoproj.io/sync-wave: "-1"

@@ -33,3 +33,10 @@ spec:
         factor: 2
         maxDuration: 3m
   revisionHistoryLimit: 10
+  ignoreDifferences:
+    # istiod's own webhook controller patches in the real caBundle and
+    # flips failurePolicy to Fail once it's ready - the chart ships neither
+    # set, so this is permanent, expected drift, not a config bug.
+    - kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks
