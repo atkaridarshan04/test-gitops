@@ -30,8 +30,12 @@ api:
             clientID: Ov23li762pyy20AtPuXQ
             clientSecret: "$GITHUB_CLIENT_SECRET"
             redirectURI: "http://localhost:8082/dex/callback"
-            orgs:
-              - name: atkaridarshan04
+            # orgs restriction removed: atkaridarshan04 is a personal GitHub
+            # account, not an Organization, so Dex's org-membership check
+            # always rejects it - throwaway unblock for personal-account
+            # testing, matching the same workaround already applied to
+            # Grafana's config below. Revert once the real personal-account
+            # vs. org toggle ships from platform-generator.
       admins:
         claims:
           email:
