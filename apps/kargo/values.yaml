@@ -11,6 +11,13 @@ api:
     # requirement (see docs/addons/kargo.md), which chart defaults still
     # handle regardless of this setting
     enabled: false
+  # api.host is the single source of truth the chart uses to compute the
+  # Dex issuer URL (api.oidc.issuerURL is ignored whenever Dex is enabled) -
+  # without it, Dex defaults to a portless issuer ("http://localhost/dex"
+  # instead of "http://localhost:8082/dex"), which doesn't match the
+  # port-forwarded address or redirectURI below, breaking the GitHub OAuth
+  # callback with no server-side error logged.
+  host: localhost:8082
   oidc:
     enabled: true
     dex:
