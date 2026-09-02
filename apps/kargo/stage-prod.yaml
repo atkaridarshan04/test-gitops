@@ -23,7 +23,7 @@ spec:
     spec:
       vars:
         - name: overlayPath
-          value: ./overlays/prod
+          value: ./kustomize/overlays/prod
         - name: appName
           value: app-prod
         - name: branch

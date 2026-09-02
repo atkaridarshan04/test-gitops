@@ -21,7 +21,7 @@ spec:
     spec:
       vars:
         - name: overlayPath
-          value: ./overlays/staging
+          value: ./kustomize/overlays/staging
         - name: appName
           value: app-staging
         - name: branch
