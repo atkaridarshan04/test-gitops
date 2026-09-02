@@ -15,7 +15,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/atkaridarshan04/test-app.git
-    path: ./overlays/staging
+    path: ./kustomize/overlays/staging
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
