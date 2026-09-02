@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+  labels:
+    # see servicemonitor-argocd-server.yaml for why this label is required
+    release: monitoring
+  annotations:
+    # see servicemonitor-argocd-server.yaml for wave/sync-options rationale
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server-metrics
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s

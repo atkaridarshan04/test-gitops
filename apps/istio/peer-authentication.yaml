@@ -1,15 +1,17 @@
 # Mesh-wide default is already PERMISSIVE with no PeerAuthentication at all
-# (Istio's own default) - this makes that explicit and documented, and is
-# the scope for this first pass; STRICT is a deliberate follow-up once
-# every addon in this repo is confirmed sidecar-injected (see root README's
-# "Not yet in this repo").
+# (Istio's own default) - this makes that explicit and documented. See
+# docs/adr/0005-istio-strict-mtls.md in the platform-generator repo this was
+# generated from before opting into STRICT (istio_mtls_mode).
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
   name: default
   namespace: istio-system
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    # Wave "2" (platform-tier, must follow another platform addon - istiod,
+    # wave "0"), not "1" (onboarded apps) - see CLAUDE.md's ArgoCD
+    # conventions.
+    argocd.argoproj.io/sync-wave: "2"
     # security.istio.io/v1 isn't registered until istio-base (wave "-1")
     # actually installs - see CLAUDE.md's ArgoCD conventions for why this
     # is needed regardless of sync-wave

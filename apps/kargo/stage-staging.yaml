@@ -6,6 +6,7 @@ metadata:
   namespace: app
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # see project.yaml - CRD not registered yet at sync-validation time
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   requestedFreight:
@@ -20,7 +21,7 @@ spec:
     spec:
       vars:
         - name: overlayPath
-          value: ./kustomize/overlays/staging
+          value: ./overlays/staging
         - name: appName
           value: app-staging
         - name: branch

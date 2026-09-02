@@ -4,8 +4,10 @@ metadata:
   name: kiali
   namespace: argocd
   annotations:
-    # after istiod (wave "0") - Kiali reads the mesh's own config/telemetry
-    argocd.argoproj.io/sync-wave: "1"
+    # after istiod (wave "0") - Kiali reads the mesh's own config/telemetry.
+    # Wave "2" (platform-tier, must follow another platform addon), not "1"
+    # (onboarded apps) - see CLAUDE.md's ArgoCD conventions.
+    argocd.argoproj.io/sync-wave: "2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

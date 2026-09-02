@@ -11,6 +11,7 @@ each one deploys (Helm values, Kargo's own CRDs).
 - [Layout](#layout)
 - [Reaching Grafana](#reaching-grafana)
 - [Reaching Kargo](#reaching-kargo)
+- [Istio mesh day-2 operations](#istio-mesh-day-2-operations)
 - [Reaching Kiali](#reaching-kiali)
 - [Not yet in this repo](#not-yet-in-this-repo)
 - [Promotion pipeline](#promotion-pipeline)
@@ -18,7 +19,7 @@ each one deploys (Helm values, Kargo's own CRDs).
 
 ## Setup
 
-1. Push this repo to `https://github.com/your-org/my-platform-gitops.git` (already set).
+1. Push this repo to `https://github.com/atkaridarshan04/test-gitops.git` (already set).
 1. Cluster + ArgoCD - needed before the next steps, since they need
    `kubectl` access:
 
@@ -30,7 +31,12 @@ each one deploys (Helm values, Kargo's own CRDs).
    kubectl port-forward -n argocd svc/argocd-server 8080:443   # ArgoCD UI at https://localhost:8080, user "admin"
    ```
 1. Create Grafana's admin Secret - it reads credentials from an existing
-   Secret instead of a value committed here:
+   Secret instead of a value committed here, plus a GitHub OAuth
+   App's client ID/secret for native GitHub login (never a Copier answer or
+   committed value - register the App at Settings -> Developer settings ->
+   OAuth Apps, callback URL
+   `http://localhost:3000/login/github`,
+   login restricted to the `atkaridarshan04` org):
 
    > [!IMPORTANT]
    > `monitoring` won't sync until this Secret exists.
@@ -40,18 +46,27 @@ each one deploys (Helm values, Kargo's own CRDs).
    kubectl create secret generic grafana-admin-credentials \
      --namespace monitoring \
      --from-literal=admin-user=admin \
-     --from-literal=admin-password='<your password>'
+     --from-literal=admin-password='<your password>' \
+     --from-literal=github-client-id='<OAuth App client ID>' \
+     --from-literal=github-client-secret='<OAuth App client secret>'
    ```
 
 1. Install [cert-manager](https://cert-manager.io/) - Kargo's internal
-   admission webhooks server needs it, not installed by this tool yet:
+   admission webhooks server needs it. The paired infra repo's own
+   `enable_cert_manager` installs it automatically (recommended); without
+   that toggle, install it by hand instead:
 
    ```bash
    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.1/cert-manager.yaml
    ```
 
 1. Create Kargo's admin Secret - it reads credentials from an existing
-   Secret instead of a value committed here:
+   Secret instead of a value committed here, plus a GitHub OAuth
+   App's client ID/secret for Dex login (never a Copier answer or
+   committed value - register the App at Settings -> Developer settings ->
+   OAuth Apps, callback URL
+   `http://localhost:8082/dex/callback`,
+   login restricted to the `atkaridarshan04` org):
 
    > [!IMPORTANT]
    > `kargo` won't sync until this Secret exists.
@@ -64,7 +79,9 @@ each one deploys (Helm values, Kargo's own CRDs).
    kubectl create secret generic kargo-admin \
      --namespace kargo \
      --from-literal=ADMIN_ACCOUNT_PASSWORD_HASH="$hash" \
-     --from-literal=ADMIN_ACCOUNT_TOKEN_SIGNING_KEY="$key"
+     --from-literal=ADMIN_ACCOUNT_TOKEN_SIGNING_KEY="$key" \
+     --from-literal=dex.github.clientID='<OAuth App client ID>' \
+     --from-literal=dex.github.clientSecret='<OAuth App client secret>'
    ```
 
 1. Create Kargo's git credentials Secret by hand - Kargo discovers it via
@@ -86,7 +103,7 @@ each one deploys (Helm values, Kargo's own CRDs).
      labels:
        kargo.akuity.io/cred-type: git
    stringData:
-     repoURL: https://github.com/your-org/my-app.git
+     repoURL: https://github.com/atkaridarshan04/test-app.git
      username: git
      password: <a GitHub PAT with repo write access>
    EOF
@@ -110,11 +127,13 @@ argocd/
     ├── app-dev.yaml     # Application: overlays/dev - sync-wave "1"
     ├── app-staging.yaml # Application: overlays/staging - sync-wave "1"
     ├── app-prod.yaml    # Application: overlays/prod - sync-wave "1"
-    └── kiali.yaml                 # Application: mesh visualization - sync-wave "1"
-
+    └── kiali.yaml                 # Application: mesh visualization - sync-wave "2"
 apps/
 ├── istio/
-│   └── peer-authentication.yaml # mesh-wide mTLS: PERMISSIVE - sync-wave "1"
+│   ├── peer-authentication.yaml # mesh-wide mTLS: PERMISSIVE - sync-wave "2"
+│   ├── namespace-dev.yaml       # labeled istio-injection: enabled - sync-wave "-1"
+│   ├── namespace-staging.yaml   # labeled istio-injection: enabled - sync-wave "-1"
+│   └── namespace-prod.yaml      # labeled istio-injection: enabled - sync-wave "-1"
 ├── monitoring/
 │   └── values.yaml          # Helm values, referenced by argocd/applications/monitoring.yaml via "$values"
 ├── kargo/
@@ -132,29 +151,50 @@ apps/
 docs/
 └── runbooks/
     ├── monitoring.md          # status checks, secret rotation, troubleshooting
-    └── kargo.md               # promotion status, approvals, stuck-promotion recovery, secret rotation
+    ├── kargo.md               # promotion status, approvals, stuck-promotion recovery, secret rotation
+    ├── istio.md               # mesh health, sidecar injection, mTLS mode
+    └── kiali.md              # reach the UI, empty-topology troubleshooting
 ```
 
 ## Reaching Grafana
+
 ```bash
 kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
 ```
 
 Open `http://localhost:3000`.
 
+GitHub login (`enable_grafana_sso`) is restricted to the
+`atkaridarshan04` org via Grafana's native GitHub OAuth (no
+Dex), independent of ArgoCD's and Kargo's own bundled Dex (see ADR 0004 in
+the platform-generator repo this was generated from) - the **Sign in with
+GitHub** button appears on the login page once the OAuth App's client
+ID/secret are in place. The admin account
+(`grafana-admin-credentials`'s password) still works as a fallback.
 Day-2 operations (secret rotation, no-data troubleshooting, resizing
 storage) are in `docs/runbooks/monitoring.md`.
 
 ## Reaching Kargo
+
 ```bash
 kubectl port-forward -n kargo svc/kargo-api 8082:80
 ```
 
 Open `http://localhost:8082`.
 
-Log in with the admin account (`kargo_admin_secret_name`'s password);
-day-2 operations (stuck promotions, approvals, secret rotation) are in
+GitHub login (`enable_kargo_sso`) is restricted to the `atkaridarshan04`
+org via Kargo's own bundled Dex, independent of ArgoCD's own Dex and
+Grafana's native GitHub OAuth (see ADR 0004 in the platform-generator repo
+this was generated from) - the **Log in via GitHub** button appears on the
+login page once Dex picks up the OAuth App's client ID/secret. The admin
+account (`kargo_admin_secret_name`'s password) still works as a fallback.
+Day-2 operations (stuck promotions, approvals, secret rotation) are in
 `docs/runbooks/kargo.md`.
+
+## Istio mesh day-2 operations
+
+Checking sidecar-injection status and rolling out injection to
+already-running pods are in `docs/runbooks/istio.md`, along with moving to `STRICT` mTLS.
 
 ## Reaching Kiali
 
@@ -163,37 +203,40 @@ kubectl port-forward -n istio-system svc/kiali 20001:20001
 ```
 
 Open `http://localhost:20001` - no login (`auth.strategy: anonymous`, see
-"Not yet in this repo").
+"Not yet in this repo"). Day-2 operations (no data, empty topology) are in
+`docs/runbooks/kiali.md`.
 
 ## Not yet in this repo
+
 - An ArgoCD `ServiceMonitor` (so Prometheus scrapes ArgoCD's own metrics) -
   deliberate follow-up, added once the monitoring stack above is confirmed
   working.
-- Kargo OIDC/Dex login and ECR/GAR/ACR ambient-credential Pod Identity
-  support - admin-account login only for now. Only one tracked app's
-  promotion pipeline is generated per repo (same limitation as
-  `app_repo_url` itself, not new here).
+- ECR/GAR/ACR ambient-credential Pod Identity support. Only one
+  tracked app's promotion pipeline is generated per repo (same limitation
+  as `app_repo_url` itself, not new here).
 - Mesh-wide mTLS in `STRICT` mode - `PERMISSIVE` (both mTLS and plaintext
-  accepted) is the scope for this first pass, so enabling Istio doesn't
-  silently break traffic to any namespace that isn't sidecar-injected yet.
-  Sidecar injection itself is opt-in per namespace (`istio-injection:
-  enabled` label) - nothing in this repo is auto-enrolled.
+  accepted) is this repo's default so enabling Istio doesn't silently break
+  traffic to any namespace that isn't sidecar-injected yet. Opt in via
+  `istio_mtls_mode=STRICT` once every relevant namespace is confirmed
+  injected - see `docs/adr/0005-istio-strict-mtls.md` in the
+  platform-generator repo this was generated from.
+  - Sidecar injection itself is opt-in per namespace (`istio-injection:
+    enabled` label) - nothing in this repo is auto-enrolled.
 - Kiali's own login (`auth.strategy: anonymous` for now) and an Ingress
-  for its UI - `kubectl port-forward` only, same first-pass scope as
-  Kargo's admin-account-only login above.
+  for its UI - `kubectl port-forward` only.
 
 ## Promotion pipeline
 
 `apps/kargo/` includes a Kargo `Project`/`Warehouse`/three `Stage`s/one
 shared `PromotionTask` for `app`, watching
-`ghcr.io/your-org/my-app` for new image tags and promoting
-`./overlays/{dev,staging,prod}` in `https://github.com/your-org/my-app.git`
+`hashicorp/http-echo` for new image tags and promoting
+`./overlays/{dev,staging,prod}` in `https://github.com/atkaridarshan04/test-app.git`
 between them (dev/staging auto, prod needs a human to merge the PR Kargo
 opens - see "Not yet in this repo"). `argocd/applications/` includes the
 `app-dev`/`-staging`/`-prod` `Application`s, pre-annotated so
 Kargo is authorized to update them (see Layout above) - you still need to
 build the `overlays/{dev,staging,prod}` directories themselves in
-`https://github.com/your-org/my-app.git`; `examples/kustomize/` is a worked example of that
+`https://github.com/atkaridarshan04/test-app.git`; `examples/kustomize/` is a worked example of that
 layout. Once you've pushed it, check status:
 
 ```bash

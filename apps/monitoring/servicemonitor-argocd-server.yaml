@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    # kube-prometheus-stack's Prometheus only watches ServiceMonitors
+    # carrying this label - see prometheus.prometheusSpec.serviceMonitorSelector
+    # in the upstream chart, which defaults to matching its own Release.Name
+    release: monitoring
+  annotations:
+    # sync-wave "1" - after the monitoring Application (wave "0") has
+    # actually installed the Prometheus Operator and its CRDs, not just
+    # been applied
+    argocd.argoproj.io/sync-wave: "1"
+    # ArgoCD validates the whole sync batch upfront, including this CRD
+    # instance, before wave "0" installs kube-prometheus-stack that
+    # actually registers the ServiceMonitor CRD
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server-metrics
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s

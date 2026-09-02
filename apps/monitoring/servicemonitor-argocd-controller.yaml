@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+  labels:
+    # see servicemonitor-argocd-server.yaml for why this label is required
+    release: monitoring
+  annotations:
+    # see servicemonitor-argocd-server.yaml for wave/sync-options rationale
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      # the application-controller and notifications-controller metrics
+      # Services share the same app.kubernetes.io/name (argocd-metrics) -
+      # component distinguishes them
+      app.kubernetes.io/name: argocd-metrics
+      app.kubernetes.io/component: application-controller
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s

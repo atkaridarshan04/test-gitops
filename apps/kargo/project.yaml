@@ -6,4 +6,8 @@ metadata:
   name: app
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # ArgoCD validates the whole sync batch upfront, including this Kargo
+    # CRD instance, before wave "0" installs the Kargo chart that actually
+    # registers the CRD - without this, first sync fails "the server could
+    # not find the requested resource" and retries forever
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true

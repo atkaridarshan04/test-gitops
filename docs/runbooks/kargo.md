@@ -18,6 +18,12 @@ kubectl get application app-dev app-staging app-prod -n argocd
 environment; a `Warehouse` with no new `Freight` past your last release
 means nothing new has matched `kargo_image_constraint` yet.
 
+## Reach the Kargo UI
+
+```bash
+kubectl port-forward -n kargo svc/kargo-api 8082:80
+```
+
 ## Approve a prod promotion
 
 Staging's `git-open-pr` step opens a PR against `https://github.com/atkaridarshan04/test-app.git` -
@@ -37,13 +43,18 @@ kubectl get promotion -n app
 kubectl describe promotion <name> -n app
 ```
 
-Common causes: the PR was closed without merging (re-run by refreshing
-the `Stage`, `kubectl annotate stage <name> -n app
-kargo.akuity.io/refresh=$(date +%s) --overwrite`), or `argocd-update`
-found no `Application` annotated `kargo.akuity.io/authorized-stage:
-app:<env>` - confirm the annotation on
-`app-<env>` matches exactly (see `examples/kustomize/` in this
-template's own source repo).
+Common causes:
+
+- The PR was closed without merging - re-run by refreshing the `Stage`:
+
+  ```bash
+  kubectl annotate stage <name> -n app \
+    kargo.akuity.io/refresh=$(date +%s) --overwrite
+  ```
+- `argocd-update` found no `Application` annotated
+  `kargo.akuity.io/authorized-stage: app:<env>` - confirm the
+  annotation on `app-<env>` matches exactly (see
+  `examples/kustomize/` in this template's own source repo).
 
 ## Force a Warehouse refresh
 
@@ -52,6 +63,25 @@ kubectl annotate warehouse app -n app \
   kargo.akuity.io/refresh=$(date +%s) --overwrite
 ```
 
+## Rotate the Kargo GitHub OAuth credentials
+
+```bash
+kubectl -n kargo patch secret kargo-admin -p '{"stringData": {
+  "dex.github.clientID": "<new OAuth App client ID>",
+  "dex.github.clientSecret": "<new OAuth App client secret>"
+}}'
+```
+
+Restart the Dex pod to pick it up:
+
+```bash
+kubectl rollout restart deploy/kargo-dex-server -n kargo
+```
+
+To change the allowed org (`github_sso_org: atkaridarshan04`), update
+the Copier answer and re-render this repo instead - it's baked into
+`apps/kargo/values.yaml`'s Dex config, not read from the Secret.
+
 ## Rotate Kargo's admin credentials
 
 ```bash
@@ -59,6 +89,8 @@ kubectl create secret generic kargo-admin \
   --namespace kargo \
   --from-literal=ADMIN_ACCOUNT_PASSWORD_HASH='<new bcrypt hash>' \
   --from-literal=ADMIN_ACCOUNT_TOKEN_SIGNING_KEY='<new signing key>' \
+  --from-literal=dex.github.clientID='<current OAuth App client ID>' \
+  --from-literal=dex.github.clientSecret='<current OAuth App client secret>' \
   --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl rollout restart deploy/kargo-api -n kargo
@@ -81,12 +113,3 @@ stringData:
   password: <new PAT>
 EOF
 ```
-
-## Reach the Kargo UI
-
-```bash
-kubectl port-forward -n kargo svc/kargo-api 8081:443
-```
-
-No Ingress in this first pass (see root README's "Not yet in this repo") -
-port-forward only.

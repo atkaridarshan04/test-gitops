@@ -4,7 +4,35 @@ api:
   secret:
     name: kargo-admin
   tls:
-    # chart default (true) requires cert-manager CRDs for its self-signed
-    # cert, which this repo doesn't install - TLS terminates upstream
-    # instead (ALB's wildcard cert on aws, plain port-forward on local)
+    # chart default (true) provisions a cert-manager self-signed cert for
+    # this API server specifically - unneeded either way, TLS terminates
+    # upstream instead (ALB's wildcard cert on aws, plain port-forward on
+    # local). Separate from the internal webhooks server's own cert-manager
+    # requirement (see docs/addons/kargo.md), which chart defaults still
+    # handle regardless of this setting
     enabled: false
+  oidc:
+    enabled: true
+    dex:
+      enabled: true
+      connectors:
+        - id: github
+          name: GitHub
+          type: github
+          config:
+            clientID: "$GITHUB_CLIENT_ID"
+            clientSecret: "$GITHUB_CLIENT_SECRET"
+            redirectURI: "http://localhost:8082/dex/callback"
+            orgs:
+              - name: atkaridarshan04
+      env:
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: kargo-admin
+              key: dex.github.clientID
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kargo-admin
+              key: dex.github.clientSecret
