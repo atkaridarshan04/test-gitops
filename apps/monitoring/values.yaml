@@ -17,9 +17,11 @@ grafana:
       auth_url: https://github.com/login/oauth/authorize
       token_url: https://github.com/login/oauth/access_token
       api_url: https://api.github.com/user
-      # allowed_organizations: atkaridarshan04
+      # No allowed_organizations (personal mode, no org restriction) -
+      # every GitHub login except the named identity below gets Grafana's
+      # default auto_assign_org_role (Viewer), matching Admin only for
+      # grafana_github_sso_personal_username.
       role_attribute_path: login=='atkaridarshan04' && 'Admin' || 'Viewer'
-
   # client_id/client_secret are deliberately absent from grafana.ini above -
   # GF_AUTH_GITHUB_CLIENT_ID/CLIENT_SECRET below override that section's
   # keys without ever landing in the rendered ConfigMap

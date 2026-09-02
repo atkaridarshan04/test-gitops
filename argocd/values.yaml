@@ -1,0 +1,57 @@
+# ArgoCD's own Helm values for local (kind) - tracked here instead of a raw,
+# untyped `helm install --set ...` invocation, so the mistakes this repo's
+# Kargo SSO bugs were made of (an untracked value nobody remembers setting)
+# can't happen for ArgoCD's own install either. Applied by hand
+# (`helm install/upgrade -f argocd/values.yaml`), not by ArgoCD itself - see
+# docs/adr/0007 for why this stays manual instead of self-managed.
+#
+# configs.secret.argocdServerAdminPassword is deliberately absent - never a
+# Copier answer or committed value, same convention as every other addon's
+# admin credential in this repo. Leaving it unset means the chart generates
+# its own random initial password (`argocd-initial-admin-secret`).
+dex:
+  enabled: true
+notifications:
+  enabled: false
+applicationSet:
+  enabled: false
+configs:
+  cm:
+    # Required for Dex to correctly build the redirect_uri it sends to
+    # GitHub - without it, Dex falls back to an internal/incorrect base URL
+    # and GitHub rejects the callback (same class of bug as the Kargo
+    # api.host fix - see docs/adr/0006).
+    url: https://localhost:8080
+    dex.config: |
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: $dex.github.clientID
+            clientSecret: $dex.github.clientSecret
+  rbac:
+    policy.default: role:readonly
+    # Defaults to "[groups]" - the g, <subject>, role:admin binding below
+    # matches by GitHub org:team group or by email, neither of which RBAC
+    # examines without this, silently falling back to policy.default
+    # (readonly) even though login succeeds.
+    scopes: "[groups, email]"
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, accounts, *, *, allow
+      p, role:admin, gpgkeys, *, *, allow
+      g, atkaridarshan04@gmail.com, role:admin
+controller:
+  metrics:
+    enabled: true
+repoServer:
+  metrics:
+    enabled: true
+server:
+  metrics:
+    enabled: true

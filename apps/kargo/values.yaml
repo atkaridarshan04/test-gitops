@@ -11,20 +11,12 @@ api:
     # requirement (see docs/addons/kargo.md), which chart defaults still
     # handle regardless of this setting
     enabled: false
-  # api.host is the single source of truth the chart uses to compute the
-  # Dex issuer URL (api.oidc.issuerURL is ignored whenever Dex is enabled) -
-  # without it, Dex defaults to a portless issuer ("http://localhost/dex"
-  # instead of "http://localhost:8082/dex"), which doesn't match the
-  # port-forwarded address or redirectURI below, breaking the GitHub OAuth
-  # callback with no server-side error logged.
-  host: localhost:8082
   oidc:
     enabled: true
-    # admins.claims must be a direct child of oidc, not nested under dex -
-    # api.oidc.dex has no admins key of its own, so nesting it there
-    # silently no-ops: the authenticated user gets zero RBAC, hence
-    # "projects.kargo.akuity.io is forbidden: list is not permitted" even
-    # though login itself succeeds.
+    # admins/viewers must be direct children of oidc, not nested under dex -
+    # oidc.dex has no admins/viewers key of its own, so nesting them there
+    # silently no-ops: the authenticated user gets zero RBAC even though
+    # login itself succeeds (see docs/adr/0006).
     admins:
       claims:
         email:
@@ -36,12 +28,24 @@ api:
           name: GitHub
           type: github
           config:
-            clientID: Ov23li762pyy20AtPuXQ
+            clientID: "$GITHUB_CLIENT_ID"
             clientSecret: "$GITHUB_CLIENT_SECRET"
             redirectURI: "http://localhost:8082/dex/callback"
       env:
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: kargo-admin
+              key: dex.github.clientID
         - name: GITHUB_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: kargo-admin
               key: dex.github.clientSecret
+  # api.host is the single source of truth the chart uses to compute the
+  # Dex issuer URL (api.oidc.issuerURL is ignored whenever Dex is enabled) -
+  # without it, Dex falls back to a portless default ("localhost", not
+  # "localhost:8082"), which doesn't match the port-forwarded address above
+  # or redirectURI below, breaking the GitHub OAuth callback even though
+  # nothing else looks wrong.
+  host: localhost:8082
