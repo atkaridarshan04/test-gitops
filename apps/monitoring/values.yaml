@@ -17,7 +17,9 @@ grafana:
       auth_url: https://github.com/login/oauth/authorize
       token_url: https://github.com/login/oauth/access_token
       api_url: https://api.github.com/user
-      allowed_organizations: atkaridarshan04
+      # allowed_organizations: atkaridarshan04
+      role_attribute_path: login=='atkaridarshan04' && 'Admin' || 'Viewer'
+
   # client_id/client_secret are deliberately absent from grafana.ini above -
   # GF_AUTH_GITHUB_CLIENT_ID/CLIENT_SECRET below override that section's
   # keys without ever landing in the rendered ConfigMap
