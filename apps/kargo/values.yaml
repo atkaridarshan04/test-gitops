@@ -20,17 +20,16 @@ api:
           name: GitHub
           type: github
           config:
-            clientID: "$GITHUB_CLIENT_ID"
+            clientID: Ov23li762pyy20AtPuXQ
             clientSecret: "$GITHUB_CLIENT_SECRET"
             redirectURI: "http://localhost:8082/dex/callback"
             orgs:
               - name: atkaridarshan04
+      admins:
+        claims:
+          email:
+            - atkaridarshan04@gmail.com
       env:
-        - name: GITHUB_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: kargo-admin
-              key: dex.github.clientID
         - name: GITHUB_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
