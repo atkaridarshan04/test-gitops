@@ -6,6 +6,12 @@ grafana:
     storageClassName: standard
     size: 5Gi
   grafana.ini:
+    # TEST ONLY - verifying whether Grafana 13's disabling of the legacy
+    # numeric-ID datasource proxy API is why the vendored Istio dashboards'
+    # query_result()-based $namespace/$service/$workload variables come up
+    # empty. Not meant to land in the generator as-is.
+    feature_toggles:
+      datasourceLegacyIdApi: true
     server:
       # GitHub's OAuth callback is "<root_url>/login/github" - must match
       # the actual public URL or the callback silently 404s
