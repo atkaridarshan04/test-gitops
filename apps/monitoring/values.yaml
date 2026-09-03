@@ -52,7 +52,7 @@ kube-state-metrics:
   rbac:
     extraRules:
       - apiGroups: ["kargo.akuity.io"]
-        resources: ["promotions", "stages", "warehouses", "freight"]
+        resources: ["promotions", "stages", "warehouses", "freights"]
         verbs: ["list", "watch"]
   customResourceState:
     enabled: true
