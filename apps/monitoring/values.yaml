@@ -44,3 +44,103 @@ prometheus:
           resources:
             requests:
               storage: 20Gi
+# PROTOTYPE (not yet part of platform-generator's templates): exposes
+# Kargo's Promotion/Stage/Warehouse/Freight CR state as Prometheus metrics
+# via kube-state-metrics' Custom Resource State feature - independent of
+# whether Kargo's own controller emits kargo_* metrics.
+kube-state-metrics:
+  rbac:
+    extraRules:
+      - apiGroups: ["kargo.akuity.io"]
+        resources: ["promotions", "stages", "warehouses", "freight"]
+        verbs: ["list", "watch"]
+  customResourceState:
+    enabled: true
+    config:
+      kind: CustomResourceStateMetrics
+      spec:
+        resources:
+          - groupVersionKind:
+              group: kargo.akuity.io
+              version: v1alpha1
+              kind: Promotion
+            labelsFromPath:
+              namespace: [metadata, namespace]
+              promotion: [metadata, name]
+              stage: [spec, stage]
+            metricNamePrefix: kargo_promotion
+            metrics:
+              - name: phase
+                help: "Kargo Promotion phase"
+                each:
+                  type: StateSet
+                  stateSet:
+                    path: [status, phase]
+                    labelName: phase
+                    list: [Pending, Running, Succeeded, Failed, Errored, Aborted]
+
+          - groupVersionKind:
+              group: kargo.akuity.io
+              version: v1alpha1
+              kind: Stage
+            labelsFromPath:
+              namespace: [metadata, namespace]
+              stage: [metadata, name]
+            metricNamePrefix: kargo_stage
+            metrics:
+              - name: condition
+                help: "Kargo Stage condition status (Ready/Healthy/Verified), 1=True 0=False or Unknown"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, conditions]
+                    labelsFromPath:
+                      type: ["type"]
+                      reason: ["reason"]
+                    valueFrom: ["status"]
+
+          - groupVersionKind:
+              group: kargo.akuity.io
+              version: v1alpha1
+              kind: Warehouse
+            labelsFromPath:
+              namespace: [metadata, namespace]
+              warehouse: [metadata, name]
+            metricNamePrefix: kargo_warehouse
+            metrics:
+              - name: condition
+                help: "Kargo Warehouse condition status, 1=True 0=False or Unknown"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, conditions]
+                    labelsFromPath:
+                      type: ["type"]
+                      reason: ["reason"]
+                    valueFrom: ["status"]
+
+          - groupVersionKind:
+              group: kargo.akuity.io
+              version: v1alpha1
+              kind: Freight
+            labelsFromPath:
+              namespace: [metadata, namespace]
+              freight: [metadata, name]
+            metricNamePrefix: kargo_freight
+            metrics:
+              - name: currently_in_stage
+                help: "Timestamp a Freight entered a Stage's currently-in set (still present there)"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, currentlyIn]
+                    labelFromKey: stage
+                    valueFrom: [since]
+              - name: verified_in_stage
+                help: "Timestamp a Freight was verified in a Stage"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, verifiedIn]
+                    labelFromKey: stage
+                    valueFrom: [verifiedAt]
