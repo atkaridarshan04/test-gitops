@@ -1,0 +1,32 @@
+# Placed inside the monitoring Application (not kargo's) so wave ordering is
+# deterministic: kargo and monitoring are sibling root-level Applications
+# with no ordering guarantee between them, so a ServiceMonitor living in
+# kargo's own sync could render before monitoring's wave 0 has installed the
+# ServiceMonitor CRD, with no point where it's guaranteed to self-correct.
+# Mirrors servicemonitor-argocd.yaml's conventions - release: monitoring,
+# sync-wave "1", SkipDryRunOnMissingResource=true.
+#
+# selector.matchLabels and endpoints[].port match Kargo's own chart
+# (charts/kargo/templates/controller/metrics-service.yaml,
+# _helpers.tpl's kargo.selectorLabels/kargo.controller.labels/
+# kargo.controller.idLabel) rather than that chart's own
+# controller.metrics.serviceMonitor.enabled - see docs/addons/monitoring.md.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kargo-controller
+  namespace: kargo
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kargo
+      app.kubernetes.io/instance: kargo
+      app.kubernetes.io/component: controller
+  endpoints:
+    - port: http-metrics
+      interval: 30s

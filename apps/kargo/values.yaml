@@ -18,3 +18,10 @@ api:
   # or redirectURI below, breaking the GitHub OAuth callback even though
   # nothing else looks wrong.
   host: localhost:8082
+controller:
+  # Only exposed when something will actually scrape it - the ServiceMonitor
+  # at apps/monitoring/servicemonitor-kargo.yaml, not this chart's own
+  # controller.metrics.serviceMonitor.enabled (see docs/addons/monitoring.md
+  # for why that toggle is rejected in favor of a hand-rolled manifest).
+  metrics:
+    enabled: true
