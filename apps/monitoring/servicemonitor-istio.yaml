@@ -1,0 +1,83 @@
+# The Istio Grafana dashboards (dashboard-istio.yaml) chart istio_requests_total
+# and friends by reporter=destination/source - those metrics only exist if
+# something is actually scraping istiod and every sidecar's envoy stats.
+# Istio ships neither on its own (see istio.io/latest/docs/ops/integrations/
+# prometheus) - two separate scrape targets are needed:
+# - istiod's own control-plane metrics (http-monitoring port, 15014) - a
+#   normal ServiceMonitor against its Service.
+# - every mesh pod's istio-proxy sidecar (envoy stats) - no Service fronts
+#   these, so it's a PodMonitor instead, matched by the security.istio.io/
+#   tlsMode=istio label Istio's sidecar injector stamps onto every injected
+#   pod regardless of namespace (dev/staging/prod/app here, ` namespaceSelector:
+#   any: true` since which namespaces exist depends on enable_kargo). The
+#   pod's own prometheus.io/port annotation (istio-agent's merged app+envoy
+#   metrics endpoint, 15020) is relabeled into __address__ rather than
+#   hardcoding a port, matching Istio's own recommended manifest.
+#
+# Both need:
+# - the release: monitoring label - kube-prometheus-stack's Prometheus only
+#   watches ServiceMonitors/PodMonitors carrying it (prometheus.prometheusSpec.
+#   serviceMonitorSelector/podMonitorSelector in the upstream chart).
+# - sync-wave "1" - after the monitoring Application (wave "0") has actually
+#   installed the Prometheus Operator and its CRDs, not just been applied.
+# - SkipDryRunOnMissingResource=true - ArgoCD validates the whole sync batch
+#   upfront, including these CRD instances, before wave "0" installs
+#   kube-prometheus-stack that actually registers the ServiceMonitor/
+#   PodMonitor CRDs.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: istio-system
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app: istiod
+  endpoints:
+    - port: http-monitoring
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: istio-proxy
+  namespace: istio-system
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      security.istio.io/tlsMode: istio
+  namespaceSelector:
+    any: true
+  jobLabel: envoy-stats
+  podMetricsEndpoints:
+    - path: /stats/prometheus
+      interval: 15s
+      relabelings:
+        - action: keep
+          sourceLabels: [__meta_kubernetes_pod_container_name]
+          regex: "istio-proxy"
+        - action: keep
+          sourceLabels: [__meta_kubernetes_pod_annotationpresent_prometheus_io_scrape]
+        - sourceLabels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: (\d+?);(\d+)
+          replacement: $1:$2
+          targetLabel: __address__
+        - action: labeldrop
+          regex: "__meta_kubernetes_pod_label_(.+)"
+        - sourceLabels: [__meta_kubernetes_namespace]
+          action: replace
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          action: replace
+          targetLabel: pod_name
