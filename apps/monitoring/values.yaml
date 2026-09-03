@@ -78,6 +78,20 @@ kube-state-metrics:
                     path: [status, phase]
                     labelName: phase
                     list: [Pending, Running, Succeeded, Failed, Errored, Aborted]
+              - name: started_at
+                help: "Unix timestamp the Promotion started running"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, startedAt]
+                errorLogV: 5
+              - name: finished_at
+                help: "Unix timestamp the Promotion reached a terminal phase"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, finishedAt]
+                errorLogV: 5
 
           - groupVersionKind:
               group: kargo.akuity.io
@@ -118,6 +132,14 @@ kube-state-metrics:
                       type: ["type"]
                       reason: ["reason"]
                     valueFrom: ["status"]
+              - name: info
+                help: "Kargo Warehouse freight-creation policy and interval"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      creationPolicy: [spec, freightCreationPolicy]
+                      interval: [spec, interval]
 
           - groupVersionKind:
               group: kargo.akuity.io
@@ -126,6 +148,8 @@ kube-state-metrics:
             labelsFromPath:
               namespace: [metadata, namespace]
               freight: [metadata, name]
+              alias: [alias]
+              warehouse: [origin, name]
             metricNamePrefix: kargo_freight
             metrics:
               - name: currently_in_stage
@@ -144,3 +168,10 @@ kube-state-metrics:
                     path: [status, verifiedIn]
                     labelFromKey: stage
                     valueFrom: [verifiedAt]
+              - name: discovered_at
+                help: "Unix timestamp the Freight was discovered by its Warehouse"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [discoveredAt]
+                errorLogV: 5
