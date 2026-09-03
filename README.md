@@ -21,15 +21,34 @@ each one deploys (Helm values, Kargo's own CRDs).
 
 1. Push this repo to `https://github.com/atkaridarshan04/test-gitops.git` (already set).
 1. Cluster + ArgoCD - needed before the next steps, since they need
-   `kubectl` access:
+   `kubectl` access. Installed from `argocd/values.yaml` (tracked here,
+   not a raw `--set` invocation - see docs/adr/0007) rather than the
+   chart's own defaults:
 
    ```bash
    kind create cluster --name my-platform
 
-   helm install argocd argo-cd --repo https://argoproj.github.io/argo-helm --namespace argocd --create-namespace
+   helm repo add argo https://argoproj.github.io/argo-helm
+   helm repo update
+   helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d   # admin password
    kubectl port-forward -n argocd svc/argocd-server 8080:443   # ArgoCD UI at https://localhost:8080, user "admin"
    ```
+
+1. ArgoCD's GitHub OAuth App's client ID/secret for Dex login (never a
+   Copier answer or committed value - register the App at Settings ->
+   Developer settings -> OAuth Apps, callback URL
+   `https://localhost:8080/api/dex/callback`,
+   bound to `atkaridarshan04@gmail.com` as role:admin, no org restriction):
+
+   ```bash
+   kubectl -n argocd patch secret argocd-secret -p '{"stringData": {
+     "dex.github.clientID": "<OAuth App client ID>",
+     "dex.github.clientSecret": "<OAuth App client secret>"
+   }}'
+   kubectl -n argocd rollout restart deploy/argocd-dex-server
+   ```
+
 1. Create Grafana's admin Secret - it reads credentials from an existing
    Secret instead of a value committed here, plus a GitHub OAuth
    App's client ID/secret for native GitHub login (never a Copier answer or

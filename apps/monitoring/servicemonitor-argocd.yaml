@@ -1,0 +1,98 @@
+# ArgoCD's server/repoServer/controller/notifications each get their own
+# ServiceMonitor here (not in templates/infra's Terraform) - the
+# ServiceMonitor CRD doesn't exist yet at that Terraform apply, and
+# Terraform has no SkipDryRunOnMissingResource equivalent to tolerate that.
+# applicationSet and redis are skipped - unused CRD and low-signal internal
+# cache.
+#
+# Every one of them needs:
+# - the release: monitoring label - kube-prometheus-stack's Prometheus
+#   only watches ServiceMonitors carrying it (prometheus.prometheusSpec.
+#   serviceMonitorSelector in the upstream chart, defaults to matching its
+#   own Release.Name).
+# - sync-wave "1" - after the monitoring Application (wave "0") has
+#   actually installed the Prometheus Operator and its CRDs, not just been
+#   applied.
+# - SkipDryRunOnMissingResource=true - ArgoCD validates the whole sync
+#   batch upfront, including these CRD instances, before wave "0" installs
+#   kube-prometheus-stack that actually registers the ServiceMonitor CRD.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server-metrics
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server-metrics
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+---
+# The application-controller and notifications-controller metrics Services
+# share the same app.kubernetes.io/name (argocd-metrics) - component
+# distinguishes them.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+      app.kubernetes.io/component: application-controller
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-notifications-controller
+  namespace: argocd
+  labels:
+    release: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+      app.kubernetes.io/component: notifications-controller
+      app.kubernetes.io/instance: argocd
+  endpoints:
+    - port: http-metrics
+      interval: 30s
